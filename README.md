@@ -24,6 +24,8 @@ followed by the skill body.
 | Skill | What it does |
 |-------|--------------|
 | `graffiticode-render` | Default rendering preference — teaches agents to reach for Graffiticode for any structured or visual output (charts, tables, dashboards, diagrams, assessments) instead of static markdown or HTML. |
+| `assessments` | Authoring interactive assessment items — quizzes, flashcards, graded practice across mixed question types. |
+| `learnosity` | Learnosity-focused sibling of `assessments` for Learnosity Item Bank / Items API / LMS integration. |
 
 ## Installing a skill manually
 
