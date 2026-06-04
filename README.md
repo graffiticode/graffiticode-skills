@@ -44,26 +44,32 @@ directory over the existing one. To remove it, delete the directory from
 
 ## How the MCP server serves skills as resources
 
-The [`graffiticode-mcp-server`](../graffiticode-mcp-server) repo consumes this
-repo at build time and exposes each skill as an **MCP resource**, so any client
-connected to the Graffiticode MCP can read the skill without installing it
-locally.
+The [`graffiticode-mcp-server`](../graffiticode-mcp-server) repo discovers this
+repo **at request time** over GitHub and exposes each skill as an **MCP
+resource**, so any client connected to the Graffiticode MCP can read a skill
+without installing it locally — and **new skills appear with no rebuild or
+redeploy of the server**.
 
 The flow:
 
-1. **Copy.** `graffiticode-mcp-server/scripts/copy-skills.sh` copies the
-   contents of this repo into `graffiticode-mcp-server/skills/` (a gitignored
-   build artifact). It runs automatically via the server's `build` npm script,
-   and can be run on its own with `npm run copy-skills`.
-2. **Register.** The server registers each skill as a resource. For example
-   `graffiticode-render` is exposed as:
-   - **URI:** `graffiticode://skills/render`
-   - **Name:** `Graffiticode render skill`
+1. **Discover.** On a `resources/list` request the server calls the GitHub
+   contents API for this repo's default branch and treats each top-level
+   directory as a skill (`<id>/SKILL.md`). The directory name is the skill id.
+2. **List.** Each skill is advertised as a resource built from its `SKILL.md`
+   frontmatter:
+   - **URI:** `graffiticode://skills/<id>` (e.g. `graffiticode://skills/graffiticode-render`)
+   - **Name:** the frontmatter `name` (falling back to the directory id)
+   - **Description:** the frontmatter `description`
    - **mimeType:** `text/markdown`
-3. **Serve.** On a `resources/read` request the server reads the corresponding
-   `SKILL.md` from `skills/` **at request time** (not cached at startup), so
-   editing a skill file and re-running the copy is reflected without a server
-   restart.
+3. **Serve.** On a `resources/read` for `graffiticode://skills/<id>` the server
+   fetches that skill's `SKILL.md` from `raw.githubusercontent.com` and returns
+   it.
 
-This repo is the source of truth; `graffiticode-mcp-server/skills/` is a
-generated copy and should never be edited directly.
+Results are cached briefly (default 60s TTL, stale-while-revalidate) to stay
+within GitHub's unauthenticated rate limits, so an edit pushed to this repo is
+reflected within roughly a minute plus GitHub's raw-CDN propagation. The server
+config is overridable via `GRAFFITICODE_SKILLS_REPO`, `GRAFFITICODE_SKILLS_REF`,
+and `GRAFFITICODE_SKILLS_TTL_MS`.
+
+This repo is the source of truth; nothing is copied into the server and there is
+no generated `skills/` artifact.
