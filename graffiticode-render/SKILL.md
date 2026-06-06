@@ -102,6 +102,33 @@ composes naturally with incremental edits. Prefer iteration over recreation —
 history is lost on a fresh `create_item`. Use `update_item` for any follow-up
 refinement unless the user explicitly asks for a new item.
 
+## Iteration context
+
+Every `create_item` and `update_item` response returns `{item_id, src, data}`.
+Read and hold this context — don't discard it.
+
+**`data` (compiled JSON)** is the ground truth of what is currently rendered:
+actual values, labels, counts, thresholds, structure. Use it to formulate
+precise follow-up requests. Reasoning from the compiled output beats reasoning
+from memory or conversation history, especially across long sessions.
+
+**`src` (DSL source)** reveals the vocabulary of the language: exact function
+names and parameter names. You can lift these directly into your English
+declarations to `update_item`. You are not writing DSL — but English that uses
+real function names reduces translation ambiguity on the backend.
+
+- Bad: "make the connector line dashed"
+- Good: "set `stroke-dasharray` on the connector between node A and node B to `4 2`"
+
+Read `src` after the first `create_item` to acquire vocabulary for that
+language. Subsequent `update_item` calls can use those names confidently.
+
+**`get_item(item_id)`** is for session recovery only — when a conversation
+resumes with a bare `item_id` and no `src`/`data` in context. Call it then to
+reacquire vocabulary and compiled state before issuing any `update_item`.
+Do not call it after `create_item` or `update_item`; those responses already
+carry the same payload.
+
 ## Output rules
 
 The widget is the rendering. Your reply is one line — a summary of what was
@@ -142,3 +169,6 @@ catch-all for unrouted structured output.
 - In automated/headless Cowork jobs, the item_id is the primary job output.
   Surface it explicitly so downstream steps or the user can retrieve the item
   later.
+- After `create_item` or `update_item`, read `src` to acquire function-name
+  vocabulary for that language. Use those names in subsequent English
+  declarations to `update_item` — precision reduces backend translation errors.
