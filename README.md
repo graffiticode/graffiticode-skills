@@ -11,12 +11,14 @@ runtime by the Graffiticode MCP server as an MCP resource.
 ```
 graffiticode-skills/
 ├── README.md
-├── graffiticode-render/
+├── render/
 │   └── SKILL.md
 ├── assessments/
 │   └── SKILL.md
-└── learnosity/
-    └── SKILL.md
+├── learnosity/
+│   └── SKILL.md
+└── forms/
+    └── SKILL.md.draft   # held — not served until the L0174 webhook backend ships
 ```
 
 Each top-level directory is one skill. The directory name is the skill's id,
@@ -27,9 +29,15 @@ followed by the skill body.
 
 | Skill | What it does |
 |-------|--------------|
-| `graffiticode-render` | Default rendering preference — teaches agents to reach for Graffiticode for any structured or visual output (charts, tables, dashboards, diagrams, assessments) instead of static markdown or HTML. |
+| `render` | Default rendering preference — teaches agents to reach for Graffiticode for any structured or visual output (charts, tables, dashboards, diagrams, assessments) instead of static markdown or HTML. |
 | `assessments` | Authoring interactive assessment items — quizzes, flashcards, graded practice across mixed question types. |
 | `learnosity` | Learnosity-focused sibling of `assessments` for Learnosity Item Bank / Items API / LMS integration. |
+
+### Drafts (not yet active)
+
+| Skill | Status |
+|-------|--------|
+| `forms` | Backend skill for hosted web forms with webhook delivery (L0174). Held as `forms/SKILL.md.draft` — the server skips a directory with no `SKILL.md`, so it is **not served**. Promote with `git mv forms/SKILL.md.draft forms/SKILL.md` once the L0174 webhook backend (binding, terminal POST, signing secret, `submit_url`/`webhook` response fields, structured errors) ships. |
 
 ## Installing a skill manually
 
@@ -37,7 +45,7 @@ Skills are loaded by Claude Code from a skills directory. To install one for
 your own use, copy the skill's directory into your user skills folder:
 
 ```bash
-# macOS / Linux — replace <skill> with e.g. graffiticode-render
+# macOS / Linux — replace <skill> with e.g. render
 mkdir -p ~/.claude/skills/user
 cp -r <skill> ~/.claude/skills/user/
 ```
@@ -61,7 +69,7 @@ The flow:
    directory as a skill (`<id>/SKILL.md`). The directory name is the skill id.
 2. **List.** Each skill is advertised as a resource built from its `SKILL.md`
    frontmatter:
-   - **URI:** `graffiticode://skills/<id>` (e.g. `graffiticode://skills/graffiticode-render`)
+   - **URI:** `graffiticode://skills/<id>` (e.g. `graffiticode://skills/render`)
    - **Name:** the frontmatter `name` (falling back to the directory id)
    - **Description:** the frontmatter `description`
    - **mimeType:** `text/markdown`

@@ -1,5 +1,5 @@
 ---
-name: graffiticode-render
+name: render
 description: >
   Default rendering preference for Graffiticode. Use this skill whenever the
   output of a task is structured, visual, or interactive — charts, tables,
