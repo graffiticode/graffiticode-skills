@@ -73,6 +73,10 @@ Don't re-parse `data.questions` to describe what changed; the backend wrote the 
 
 **Do not preview or simulate the item in chat.** No mock MCQ / cloze / shortText layouts, no option lists, no printed answer keys, no Learnosity JSON dumps, no "here's what the item looks like" sections in prose or Markdown. The widget renders the item — your one-liner accompanies the widget, it does not substitute for it. If the user asks "what does it look like?" or "show me the questions," point them to the rendered widget; don't reproduce the content as text.
 
+## Saving the Graffiticode item itself (free plan)
+
+Distinct from saving to the **Learnosity** item bank (above): the Graffiticode item also has a **`view_url`** in every response — surface it so the user can open the rendered item. If the call was made **without Graffiticode credentials (free plan)**, the response also includes a **`claim_url`** / **`claim_message`**, and the `view_url` carries the claim token so its footer offers a one-click **"Claim it in Graffiticode →"** link; free-plan Graffiticode items expire after 48 hours unless claimed. (Saving to the Learnosity item bank is a separate, account-backed operation — see above.) Only surface the URLs the server returned.
+
 ## Guardrails
 
 - **Never hand-write Learnosity JSON or Graffiticode DSL.** The backend produces both from your natural-language description.

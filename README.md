@@ -11,7 +11,11 @@ runtime by the Graffiticode MCP server as an MCP resource.
 ```
 graffiticode-skills/
 ├── README.md
-└── graffiticode-render/
+├── graffiticode-render/
+│   └── SKILL.md
+├── assessments/
+│   └── SKILL.md
+└── learnosity/
     └── SKILL.md
 ```
 

@@ -64,6 +64,10 @@ Don't re-parse `data` to describe what changed; the backend already wrote the su
 
 **Do not preview or simulate the item in chat.** No sample layouts, no mock multiple-choice blocks, no ASCII/Markdown renderings of the stem and options, no printed answer keys, no "here's what it looks like" sections. The widget renders the item — your one-liner is in addition to, not a substitute for, the widget. If the user asks "what does it look like?" or "show me the questions," point them at the widget; do not reproduce the content in prose or formatted text.
 
+## Saving the item (free plan)
+
+Each `create_item` / `update_item` response carries a **`view_url`** (the item's page on `app.graffiticode.org`); surface it so the user can open or share the rendered item. When the call was made **without credentials (free plan)**, the response also includes a **`claim_url`** and a **`claim_message`**, and the `view_url` carries the claim token — so when the user opens it, the render-host footer offers a one-click **"Claim it in Graffiticode →"** link for that item (the primary way to save it). Surface the `view_url` and, in chat, the `claim_message` (the same `/claim` destination by a manual route). Free-plan items are session-scoped and expire after 48 hours unless claimed. Only surface the URLs the server returned; if `claim_url` is absent the call was authenticated and the item already persists.
+
 ## Guardrails
 
 - **Never write Graffiticode DSL directly.** The backend generates code from natural-language descriptions. If you catch yourself composing `L0158` code, stop and use `create_item`/`update_item` instead.

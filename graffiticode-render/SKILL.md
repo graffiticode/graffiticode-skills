@@ -141,6 +141,31 @@ created or changed, drawn from the tool response's own `description` or
 - If the tool response `description` or `change_summary` is null (rare — code
   generator failure), write a brief fallback drawn from the user's own request.
 
+## Surfacing the item: view URL and the claim flow
+
+Every `create_item` / `update_item` response carries a **`view_url`** — the item's page on
+`app.graffiticode.org`. Where the host renders the widget inline (claude.ai, Claude Desktop) the
+widget is the primary view, and `view_url` is the openable, shareable link to that same item. Surface
+it so the user can open the artifact in a browser tab — especially in headless/Cowork jobs where there
+is no inline widget.
+
+When the call was made **without credentials (the free plan)**, the response also includes:
+
+- **`claim_url`** — a `console.graffiticode.org/claim` link (a signed 24-hour JWT) that saves the
+  item into a permanent account.
+- **`claim_message`** — a ready-to-surface sentence describing the claim action.
+
+For free-plan items the `view_url` itself carries the claim token (`?claim=…`), so when the user opens
+it the render-host **footer shows a one-click "Claim it in Graffiticode →" link for that exact item**.
+That footer link is the primary path to saving work (the golden path). So: surface the `view_url`, and
+in chat surface the `claim_message` — the same `/claim` destination reached manually, not a separate
+step. Free-plan items are session-scoped and expire after 48 hours unless claimed; mention that when
+it's relevant, without nagging.
+
+Only ever surface the `view_url` / `claim_url` values the server returned — never fabricate or
+template them. If `claim_url` is absent, the call was authenticated and the item already persists in
+the user's account.
+
 ## Relationship to domain-specific skills
 
 This skill is a broad default. Narrower skills take precedence when installed:
@@ -149,7 +174,6 @@ This skill is a broad default. Narrower skills take precedence when installed:
 |---|---|
 | `assessments` | User is authoring quizzes, tests, or study items |
 | `learnosity` | User names Learnosity or a Learnosity-integrated LMS |
-| `gc:diagram` | User is specifically building architecture or flow diagrams |
 
 When a narrower skill is active and the user's request clearly falls in its
 domain, defer to it. This skill handles everything else and acts as the
