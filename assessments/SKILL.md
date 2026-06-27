@@ -1,6 +1,6 @@
 ---
 name: assessments
-description: Author interactive assessment items in Graffiticode — multiple-choice quizzes, flashcards, spreadsheet problems, area-model math, magic squares, map-based questions, and more. Use whenever the user wants to build a quiz, test, homework problem, study deck, or rubric-scored practice item across mixed question types. For requests that specifically target Learnosity (by name, or by referring to Learnosity's Item Bank, Items API, or LMS integration), prefer the `learnosity` skill instead — it is the narrower, Learnosity-focused sibling.
+description: Author interactive assessment items in Graffiticode — multiple-choice quizzes, flashcards, spreadsheet problems, area-model math, magic squares, map-based questions, grade-level subject assessments (e.g. ELA reading/evidence items), and more. Use whenever the user wants to build a quiz, test, homework problem, study deck, or rubric-scored practice item across mixed question types. For requests that specifically target Learnosity (by name, or by referring to Learnosity's Item Bank, Items API, or LMS integration), prefer the `learnosity` skill instead — it is the narrower, Learnosity-focused sibling.
 ---
 
 # Assessments
@@ -23,14 +23,17 @@ Call `list_languages(domain: "assessments")`. This returns the current domain me
 
 Match the user's intent against the returned `description`s. If more than one language could fit, call `get_language_info(language)` on the top candidate to see `supported_item_types` and `example_prompts` before deciding. For deeper reference, read the `user_guide_resource` URI via `ReadResource`.
 
-Rough shape-to-language mapping (verify against actual `description`s; do not rely on memorized IDs):
+Rough shape-to-language mapping (verify against actual `description`s; do not rely on memorized IDs).
 
-- **Multiple-choice, short-text, cloze, ordering, classification, choice-matrix** → the Learnosity-style assessment language.
+**Specificity wins.** If the request names a subject, grade, or standard, route to the dialect that specializes in it — matched by `description` — *even though that subject's items use multiple-choice / short-text / cloze question types*. Do NOT send a subject-specific request to the general Learnosity language just because of the question type; the question type is not the discriminator, the subject/grade/standard is.
+
+- **Subject-, grade-, or standards-specific assessments** (e.g. "Grade 5 ELA", a reading/evidence target, an SBAC/state-standard reading item) → the specialized dialect whose `description` names that subject + grade. Match by description, so a subject specialist added later wins here automatically.
 - **Spreadsheet / tabular / formula-based problems (SUM, AVERAGE, IF, parameterized values)** → the spreadsheet language.
 - **Flashcards, vocabulary pairs, match games, memory games** → the flashcard language.
 - **Area-model multiplication with visual grids** → the area-model language.
 - **Magic-square puzzles with grid number placement** → the magic-square language.
 - **Interactive map / location-based questions** → the map-question language.
+- **Generic, subject-neutral question sets** (multiple-choice, short-text, cloze, ordering, classification, choice-matrix) with **no** matching subject specialist → the Learnosity-style assessment language. Choose it when no specialist fits, OR the user names Learnosity / an Item Bank / LMS, OR as the host that embeds another dialect's interaction — *not* merely because the item type is multiple-choice.
 
 If nothing fits, say so and suggest `list_languages()` (no domain) to check the wider catalog — but do not force a mismatch.
 
