@@ -54,6 +54,30 @@ Good: "Create a 5-item multiple-choice quiz on adding fractions with unlike deno
 
 `update_item(item_id, modification)` preserves conversation history, so incremental edits compose naturally: "make the distractors harder," "add a hint on question 3," "switch to a dark theme," "change the topic from fractions to decimals." Prefer iteration over recreation — history is lost on a fresh create.
 
+## Composite requests (content + a host/format)
+
+Some requests are really **two parts of one whole**: a piece of *content* plus a *host or output
+format* it should live in — e.g. "an ELA Grade 5 item **for Learnosity**", "a spreadsheet
+question **in a Learnosity item**", "turn this passage into a Learnosity EBSR". Do **not** try to
+one-shot these with a single `create_item` in the host language — the host will then author the
+inner content itself, generically, instead of the right specialist authoring it.
+
+Treat every such request uniformly as a **round-trip**: author the inner part, carry it across
+with `get_spec`, then create the host item from that spec.
+
+1. **Author the inner content in its own specialist.** Describe just the content (e.g. "a Grade 5
+   ELA, Claim 1 Target 11 reasoning-and-evidence item about <topic>") and `create_item` it — the
+   server routes it to the right specialist dialect. `get_item` to confirm it's ready.
+2. **`get_spec(inner_item_id)`** — returns a complete, platform-neutral English description of the
+   authored content (passage, stems, options, answer keys, rationales — everything).
+3. **Create the host item from the spec.** `create_item(host_language, <that spec> + your intent
+   framing)` — e.g. "Create a Learnosity EBSR from the following content: <spec>".
+
+You never decide *how* the two parts combine — whether the host **embeds** the inner item as a
+live widget or **re-authors** it natively is the generator's call. Your job is only to ask for the
+two parts of the whole. Never paste an item's `src`/`data` or its id across languages — `get_spec`
+is the only correct bridge.
+
 ## Output
 
 Items render as interactive widgets inline in claude.ai. The tool response carries the widget metadata automatically. **The widget is the rendering. Your reply is a one-line summary, nothing more.**
