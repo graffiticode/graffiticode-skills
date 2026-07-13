@@ -1,11 +1,13 @@
 ---
 name: learnosity
-description: Author Learnosity-compatible assessment items — MCQ, short text, cloze, formula, classification, order list, choice matrix, and other Learnosity question types — for embedding in a Learnosity-integrated LMS or publishing to a Learnosity Item Bank. Use whenever the user mentions Learnosity by name or describes authoring items for a Learnosity-based platform. For generic assessment authoring across flashcards, spreadsheets, concept webs, and other question types, use the `assessments` skill instead.
+description: Author Learnosity-compatible assessment items — MCQ, short text, cloze, formula, classification, order list, choice matrix, and other Learnosity question types — for embedding in a Learnosity-integrated LMS or publishing to a Learnosity Item Bank. PRECONDITION - use ONLY when the user has actually named Learnosity (or a Learnosity Item Bank, the Items API, or a Learnosity-integrated LMS). Learnosity is a specific vendor's JSON format, not a general quiz format - question type (MCQ, cloze, short text) is never the reason to come here, since every assessment platform has those. For any assessment request that does not name Learnosity, use the `assessments` skill instead.
 ---
 
 # Learnosity
 
 Author Learnosity-compatible items via Graffiticode. This skill is the narrow, Learnosity-focused sibling of `assessments`.
+
+**Check the precondition first.** Learnosity is one vendor's item format. Use this skill only when the user named Learnosity — by name, or via a Learnosity Item Bank, the Items API, or a Learnosity-integrated LMS. If they described an assessment without naming Learnosity ("a 5-question quiz on the water cycle"), you are in the wrong skill: go to `assessments`. Never infer Learnosity from the question type.
 
 You don't need to know Learnosity's internal taxonomy (question types, scoring models, item references, activity wiring). The Graffiticode backend for the Learnosity language encodes all of that — your job is to pass a clear natural-language description and let the backend generate the compatible output.
 
@@ -17,7 +19,12 @@ The Graffiticode MCP connector must be installed and connected. If `list_languag
 
 **1. Discover the Learnosity language set.**
 
-Call `list_languages(domain: "learnosity")`. Today this returns a single language; the domain may grow (activity assemblers, item-bank sync tools) — the skill stays correct automatically.
+Call `list_languages(domain: "learnosity")`. This returns several languages; read their `description` and `when_to_use` and pick by job, not by position in the list:
+
+- **Item content** (authoring the actual questions) → the current item-authoring language. If two appear to author item content and one is marked **Deprecated**, choose the other — the deprecated one is retained only for existing items.
+- **Integration recipes** (embedding/configuring the Author API — item editor, item browser, activity editor) → the integration language. It does *not* author item content.
+
+The domain may grow (activity assemblers, item-bank sync tools) — match on `description`/`when_to_use` rather than memorizing IDs, and the skill stays correct automatically.
 
 **2. Read the language info.**
 

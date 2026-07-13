@@ -33,9 +33,14 @@ Rough shape-to-language mapping (verify against actual `description`s; do not re
 - **Area-model multiplication with visual grids** → the area-model language.
 - **Magic-square puzzles with grid number placement** → the magic-square language.
 - **Interactive map / location-based questions** → the map-question language.
-- **Generic, subject-neutral question sets** (multiple-choice, short-text, cloze, ordering, classification, choice-matrix) with **no** matching subject specialist → the Learnosity-style assessment language. Choose it when no specialist fits, OR the user names Learnosity / an Item Bank / LMS, OR as the host that embeds another dialect's interaction — *not* merely because the item type is multiple-choice.
+- **Concept webs / relationship diagrams** (central anchor, radial links, drag-and-drop concepts) → the concept-web language.
 
-If nothing fits, say so and suggest `list_languages()` (no domain) to check the wider catalog — but do not force a mismatch.
+**There is no general fallback — and that is deliberate.** If no language in the returned set fits, do **not** quietly pick the closest one. A vendor-specific language (e.g. a Learnosity language, which emits Learnosity-shaped JSON for a Learnosity Item Bank / Items API / LMS) is **never** the answer to a generic request, however well its question types match. Instead:
+
+1. Tell the user plainly what Graffiticode *does* have for their request — name the closest specialists and what each produces.
+2. Ask how they want to proceed — e.g. fit the request to a specialist, or, **if and only if they actually use Learnosity**, author it as a Learnosity item.
+
+Never infer Learnosity (or any vendor) from the question type alone. "Multiple-choice," "cloze," and "short text" are shapes every assessment platform has; they say nothing about the target platform. Only the user naming the platform does.
 
 **3. Create the item.**
 
@@ -97,9 +102,10 @@ Each `create_item` / `update_item` response carries a **`view_url`** (the item's
 
 ## Guardrails
 
-- **Never write Graffiticode DSL directly.** The backend generates code from natural-language descriptions. If you catch yourself composing `L0158` code, stop and use `create_item`/`update_item` instead.
+- **Never write Graffiticode DSL directly.** The backend generates code from natural-language descriptions. If you catch yourself composing Graffiticode source, stop and use `create_item`/`update_item` instead.
 - **Never hardcode language IDs in your reasoning.** Call `list_languages(domain: "assessments")` every session; memorized IDs go stale.
 - **Do not invent languages.** If no returned language matches, say so — don't guess an ID.
 - **Prefer domain-scoped discovery.** When the user is clearly in an assessment context, scope `list_languages` by `domain: "assessments"` rather than searching the whole catalog — it's faster and reduces wrong-language picks.
-- **Defer to `learnosity` when appropriate.** If the user names Learnosity or describes authoring for a Learnosity-integrated LMS / Item Bank / Items API, the `learnosity` skill (if installed) is the better fit — it is tighter and scoped to the `learnosity` domain. This skill will still handle the request in a pinch, but the dedicated skill is preferred.
+- **Never pick a Learnosity language unless the user named Learnosity.** A `learnosity`-domain language is off the table unless the user named Learnosity, an Item Bank, the Items API, or a Learnosity-integrated LMS. Question type (MCQ, cloze, short-text, ordering, choice-matrix) is **never** the discriminator — every platform has those. When the user *has* named Learnosity, the `learnosity` skill (if installed) is the better fit; it is tighter and scoped to that domain.
+- **No silent fallback.** If nothing in the `assessments` set matches, say so and ask (see the routing section) — never settle for the nearest-looking language.
 - **Respect the conversation.** On follow-up edits, call `update_item` on the existing `item_id`; don't start over unless the user explicitly asks for a new item.
