@@ -31,7 +31,7 @@ followed by the skill body.
 |-------|--------------|
 | `render` | Default rendering preference — teaches agents to reach for Graffiticode for any structured or visual output (charts, tables, dashboards, diagrams, assessments) instead of static markdown or HTML. |
 | `assessments` | Authoring interactive assessment items — quizzes, flashcards, graded practice across mixed question types. |
-| `learnosity` | Learnosity-focused sibling of `assessments` for Learnosity Item Bank / Items API / LMS integration. |
+| `learnosity` | Learnosity-focused sibling of `assessments`, covering two jobs: authoring item content for a Learnosity Item Bank / LMS, and planning a Learnosity API integration (embedding the item/activity authoring experience) from which a developer implements. |
 
 ### Drafts (not yet active)
 
