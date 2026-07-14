@@ -23,9 +23,13 @@ server; there is no generated artifact and no redeploy.
 
 Consequences to hold in mind:
 
-- **A push to `main` is a production deploy.** It reaches every connected MCP
-  client within ~60s (cache TTL) plus raw-CDN propagation. Work on a branch and
-  merge deliberately.
+- **A push to `main` is a production deploy**, and that is the intended workflow —
+  push to `main`, don't open a PR for a skill edit. It reaches every connected MCP
+  client within ~60s (cache TTL) plus raw-CDN propagation. Rollback is a revert
+  and a push, live again within the same window.
+- **Because there is no review gate, the checks are the gate.** Run
+  `npm run validate` before pushing and `npm run smoke` after (see Validation
+  below). CI runs both.
 - **The directory name is the skill id** — renaming a directory changes the
   resource URI and breaks anyone referencing the old one.
 - **A directory with no `SKILL.md` is skipped by the server.** This is the
@@ -65,6 +69,33 @@ tell the user what exists and ask, never to quietly pick the nearest language.
 If you weaken this in one file, weaken it nowhere; if you change it, change all
 three (git history shows it being *strengthened* repeatedly — treat regressions
 here as bugs).
+
+## Validation
+
+```bash
+npm run validate   # before pushing — frontmatter, invariants, cross-refs, README sync
+npm run smoke      # after pushing — asks the live MCP server what it is serving
+```
+
+**`validate` parses frontmatter with a real YAML parser, which is stricter than
+the MCP server's.** The server is lenient: it will serve a description containing
+a bare `key: value` colon that spec YAML rejects outright. But these skills are
+also installed directly into `~/.claude/skills/`, and *that* consumer does use a
+real parser — so a skill can look fine over MCP and be broken on install. The
+strictest consumer sets the bar. This is not hypothetical; it has already
+happened once. Keep colons out of unquoted descriptions (the existing ones use
+` — ` and ` - ` for exactly this reason).
+
+**`smoke` compares the *served* description against the local one, and that is
+the check that matters.** `resources/read` returns raw markdown and never parses
+frontmatter, so a skill with broken YAML reads back perfectly while quietly
+failing to appear or update in `resources/list` — the surface agents actually
+route on. Only the listing comparison catches it. It polls, because the server's
+~60s cache means a fresh push is legitimately not live yet; a mismatch that
+survives the cache window is real.
+
+`validate` also mechanically enforces the invariant below: no `L0xxx` in a served
+skill body.
 
 ## How to add a capability without pinning to a language ID
 

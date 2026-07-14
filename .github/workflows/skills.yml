@@ -1,0 +1,44 @@
+name: skills
+
+# main is a live deploy: the MCP server reads this repo's default branch at
+# request time, so an edit reaches every connected client within ~60s with no
+# build step. There is no staging environment to catch a bad skill — these two
+# jobs are it.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: validate (pre-deploy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run validate
+
+  smoke:
+    name: smoke (post-deploy)
+    # Only meaningful once the commit is on the default branch — that is what the
+    # server serves. On a PR there is nothing deployed to compare against.
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # Polls until the live server matches this commit, or fails past the cache
+      # window. The server's TTL is ~60s plus raw-CDN propagation.
+      - run: npm run smoke
+        env:
+          SMOKE_TIMEOUT_MS: 300000

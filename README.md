@@ -39,6 +39,33 @@ followed by the skill body.
 |-------|--------|
 | `forms` | Backend skill for hosted web forms with webhook delivery (L0174). Held as `forms/SKILL.md.draft` — the server skips a directory with no `SKILL.md`, so it is **not served**. Promote with `git mv forms/SKILL.md.draft forms/SKILL.md` once the L0174 webhook backend (binding, terminal POST, signing secret, `submit_url`/`webhook` response fields, structured errors) ships. |
 
+## Validating a change
+
+A push to the default branch is a live deploy (see below) — there is no staging
+step and no build to fail. These two checks stand in for one:
+
+```bash
+npm install
+npm run validate   # before pushing
+npm run smoke      # after pushing — verifies what the live server is actually serving
+```
+
+`validate` checks that every `SKILL.md` has parseable frontmatter with a `name`
+matching its directory and a `description` within the size cap, that no skill
+body hardcodes an `L0xxx` language ID or references a skill that isn't served,
+and that this README stays in sync. It parses YAML strictly — more strictly than
+the MCP server, which is lenient — because skills installed into
+`~/.claude/skills/` are loaded by a spec-compliant parser and a description that
+only survives the lenient one is a latent break.
+
+`smoke` asks the live MCP server for `resources/list` and `resources/read` and
+compares both against this working tree. The description comparison is the load-
+bearing one: a skill whose frontmatter fails to parse still *reads* back fine,
+but stops updating in the listing that agents route on. It polls for a few
+minutes, since the server's cache TTL means a fresh push is not instantly live.
+
+Both run in CI on every push and pull request (`.github/workflows/skills.yml`).
+
 ## Installing a skill manually
 
 Skills are loaded by Claude Code from a skills directory. To install one for
