@@ -37,8 +37,8 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      # Polls until the live server matches this commit, or fails past the cache
-      # window. The server's TTL is ~60s plus raw-CDN propagation.
+      # Polls until the live server matches this commit. Measured propagation is
+      # ~3.5 min — the ~60s cache TTL is the small term, raw-CDN is the big one.
       - run: npm run smoke
         env:
-          SMOKE_TIMEOUT_MS: 300000
+          SMOKE_TIMEOUT_MS: 420000

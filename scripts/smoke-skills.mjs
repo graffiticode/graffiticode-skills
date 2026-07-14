@@ -17,7 +17,9 @@ import yaml from "js-yaml";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const URL = process.env.GRAFFITICODE_MCP_URL ?? "https://mcp.graffiticode.org/mcp";
-const TIMEOUT_MS = Number(process.env.SMOKE_TIMEOUT_MS ?? 240_000);
+// Measured: a fresh push took ~3.5 minutes to go live. The server's cache TTL is
+// only ~60s, so GitHub's raw-CDN propagation is the dominant term — budget for it.
+const TIMEOUT_MS = Number(process.env.SMOKE_TIMEOUT_MS ?? 420_000);
 const PROTOCOL = "2025-06-18";
 
 // The server caches its GitHub reads (~60s TTL, stale-while-revalidate), so a

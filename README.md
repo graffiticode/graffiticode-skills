@@ -105,10 +105,13 @@ The flow:
    it.
 
 Results are cached briefly (default 60s TTL, stale-while-revalidate) to stay
-within GitHub's unauthenticated rate limits, so an edit pushed to this repo is
-reflected within roughly a minute plus GitHub's raw-CDN propagation. The server
-config is overridable via `GRAFFITICODE_SKILLS_REPO`, `GRAFFITICODE_SKILLS_REF`,
-and `GRAFFITICODE_SKILLS_TTL_MS`.
+within GitHub's unauthenticated rate limits. **In practice a pushed edit takes
+around 3–4 minutes to go live** — the 60s TTL is the small term; GitHub's raw-CDN
+propagation is the dominant one. (Measured with `npm run smoke`, which polls until
+the served content matches.) The server config is overridable via
+`GRAFFITICODE_SKILLS_REPO`, `GRAFFITICODE_SKILLS_REF`, and
+`GRAFFITICODE_SKILLS_TTL_MS` — a consumer that needs insulation from a bad push
+can pin `GRAFFITICODE_SKILLS_REF` to a tag rather than tracking the default branch.
 
 This repo is the source of truth; nothing is copied into the server and there is
 no generated `skills/` artifact.

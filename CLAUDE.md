@@ -24,9 +24,10 @@ server; there is no generated artifact and no redeploy.
 Consequences to hold in mind:
 
 - **A push to `main` is a production deploy**, and that is the intended workflow —
-  push to `main`, don't open a PR for a skill edit. It reaches every connected MCP
-  client within ~60s (cache TTL) plus raw-CDN propagation. Rollback is a revert
-  and a push, live again within the same window.
+  push to `main`, don't open a PR for a skill edit. **Measured: ~3.5 minutes to go
+  live**, not the ~60s you would guess from the cache TTL — GitHub's raw-CDN
+  propagation is the dominant term. Rollback is a revert and a push, live again on
+  the same timescale.
 - **Because there is no review gate, the checks are the gate.** Run
   `npm run validate` before pushing and `npm run smoke` after (see Validation
   below). CI runs both.
