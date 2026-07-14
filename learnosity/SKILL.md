@@ -89,6 +89,18 @@ Once the design is complete, `get_spec` returns the recipe — goal, preconditio
 
 **The recipe is not runnable code, on purpose.** The backend will not emit an implementation. If the user wants one, *you* write it, in their stack, working from the recipe — don't ask the backend for code, and don't skip the recipe to improvise an integration from memory of Learnosity's docs. The recipe's verification steps are the check that what you built actually works.
 
+### Implementing the recipe: it states its own confidence, and you must not upgrade it
+
+Some of what the recipe describes is verified against the live Learnosity API; some is documented-but-unconfirmed, and the recipe says which. That distinction is the most valuable thing in it and the easiest thing to lose when you summarize.
+
+**A vendor API can fail open, so a clean render proves nothing.** The Author API silently ignores `config` keys it does not recognize: the editor still initializes, the ready callback still fires, and the page looks exactly as intended — while enforcing nothing. "It rendered and there were no errors" is evidence the page loaded, not evidence your configuration took effect. Never infer success from the absence of failure.
+
+**There are two kinds of hole, and they have opposite remedies.** A *design hole* is a missing fact about the user's deployment — serving domain, author id, item reference. Ask them; never guess. A *knowledge hole* is a gap in what is known about the vendor's API itself — for example, which `config` key actually restricts the question types an author may add. You cannot ask the user that, and you must not answer it from recalled Learnosity documentation. Because the API fails open, a plausible-but-wrong config path is *worse* than an acknowledged unknown: it silently does nothing and looks like it worked. Relay the unknown exactly as the recipe states it.
+
+**Confirm config-driven behavior differentially, or not at all.** To show a `config` key did something, run the integration twice — once with the key, once with it omitted — and compare. If the behavior is identical both ways, the key changed nothing, whatever the editor looks like. A single observation of the behavior you wanted is not a confirmation; under fail-open semantics it is equally consistent with the key being ignored. The recipe's verification steps will tell you which checks need a control run.
+
+**Report the uncertainty you were given.** If the recipe says a restriction is *intended* but its binding is unconfirmed, say so to the user. Telling them "the editor is restricted to multiple choice and cloze" because the page rendered cleanly is exactly how a silent non-restriction reaches production.
+
 **Check the scope before promising.** The integration surface covers the authoring experience; other Learnosity surfaces (item-bank CRUD via the Data API, learner delivery via the Items API, the Reports API) may or may not be covered as the language grows. `get_language_info`'s `supported_item_types` and `not_for` are the current truth — read them rather than trusting this sentence, and if the user's surface isn't covered, say so plainly instead of stretching the nearest recipe over it.
 
 ## Side-effectful operations (saving item content to the item bank)
@@ -134,6 +146,8 @@ Distinct from saving to the **Learnosity** item bank (above): the Graffiticode i
 - **Never hardcode a language ID in your reasoning.** Always call `list_languages(domain: "learnosity")` at session start — the domain may add members over time.
 - **Never invent an integration fact.** A serving domain, author user id, or item reference is the user's deployment detail. When the backend flags it as a hole, ask — a guessed value yields a recipe that fails silently.
 - **Don't write the integration from memory.** When an integration recipe is available, it is the source of truth; recalled Learnosity API knowledge is not. Get the recipe, then implement from it.
+- **Never close a knowledge hole from memory.** When the recipe marks a vendor config binding *unconfirmed*, relay it as unconfirmed. Filling that gap with a remembered Learnosity config path yields an integration that fails open — it looks configured and enforces nothing, and the user ships it believing otherwise.
+- **Never report a config-driven restriction as working on the strength of a clean render.** A fired ready callback means the page loaded, not that your config took effect. Confirm it differentially — run with the key and without it, and compare — or tell the user it is unverified.
 - **Stay in the Learnosity lane.** If the user asks for something outside Learnosity (flashcards, spreadsheets, concept webs), suggest the broader `assessments` skill rather than forcing a Learnosity fit.
 - **Iterate, don't recreate.** On follow-up edits, call `update_item` on the existing `item_id`; fresh creates lose conversation history.
 - **Don't improvise out-of-band save paths.** Saves go through `update_item`; ambiguous results get verified by the user in the Learnosity UI, not by inventing API-direct or computer-use workarounds.
