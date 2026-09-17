@@ -290,6 +290,7 @@ function buildPluginObject(meta, version) {
     author: meta.author,
     interface: meta.interface,
     mcpServers: meta.mcpServers,
+    apps: meta.apps,
   };
 }
 
@@ -298,6 +299,7 @@ function serializeNative(o) {
   // A path, not an inline object: the file is also what a host that discovers
   // mcp.json by convention will find.
   if (o.mcpServers) out.mcpServers = "./mcp.json";
+  if (o.apps) out.apps = "./.app.json";
   return out;
 }
 
@@ -307,6 +309,7 @@ function serializePortable(o) {
   // reference. The mcp.json file ships either way, for convention discovery.
   const openai = { interface: o.interface };
   if (o.mcpServers) openai.mcpServers = "./mcp.json";
+  if (o.apps) openai.apps = "./.app.json";
   return {
     $schema: "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
     name: o.name,
@@ -376,6 +379,19 @@ function validatePlugin(o, skills, entries, totalBytes) {
           err(`interface.defaultPrompt has ${i.defaultPrompt.length} entries, over the ${LIMITS.defaultPrompts} cap`);
         }
         i.defaultPrompt.forEach((p, n) => checkText(`interface.defaultPrompt[${n}]`, p, LIMITS.defaultPromptChars, { singleLine: true }));
+      }
+    }
+  }
+
+  // --- apps -----------------------------------------------------------------
+  if (o.apps) {
+    for (const [alias, entry] of Object.entries(o.apps)) {
+      const id = entry?.id;
+      if (typeof id !== "string" || !/^(asdk_app_|connector_|templated_apps_)/.test(id)) {
+        err(`apps.${alias}.id "${id}" must start with asdk_app_, connector_ or templated_apps_`);
+      }
+      if (o.mcpServers && !(alias in o.mcpServers)) {
+        warn(`apps.${alias} names no server in mcpServers — the alias should match`);
       }
     }
   }
@@ -494,9 +510,19 @@ function main() {
       )
     : null;
 
+  // Bind to the registered app. An id is what a client connects to — it carries
+  // the OAuth config, the verified domain and the review history that a bare URL
+  // in mcp.json does not. Only shipped when an id exists: the documented
+  // validator rejects a plugin.json that references .app.json when the file is
+  // absent.
+  const appJson = plugin.apps
+    ? Buffer.from(JSON.stringify({ apps: plugin.apps }, null, 2) + "\n", "utf8")
+    : null;
+
   const entries = [
     { path: "plugin.json", bytes: pluginJson },
     ...(mcpJson ? [{ path: "mcp.json", bytes: mcpJson }] : []),
+    ...(appJson ? [{ path: ".app.json", bytes: appJson }] : []),
     ...skills.map((s) => ({ path: `skills/${s.id}/SKILL.md`, bytes: s.bytes })),
   ];
   const totalBytes = entries.reduce((n, e) => n + e.bytes.length, 0);

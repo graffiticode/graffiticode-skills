@@ -20,5 +20,10 @@
       "type": "streamable-http",
       "url": "https://mcp.graffiticode.org/mcp"
     }
+  },
+  "apps": {
+    "graffiticode": {
+      "id": "asdk_app_6a5a7c2760248191a8c61bb2b6c26ac9"
+    }
   }
 }
