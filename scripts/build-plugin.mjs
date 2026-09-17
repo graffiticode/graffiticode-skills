@@ -117,7 +117,7 @@ function help() {
   --out <path>     output path override
   --version <sv>   override the version from the ref
   --schema <s>     portable | native                (default: portable)
-  --dev            build under a distinct identity, for workspace testing
+  --dev            build as <name>-v2, a sibling identity for workspace testing
   --dry-run        build and hash, write nothing
   --keep-staging   leave the temp dir and print its path
   -h, --help
@@ -262,19 +262,25 @@ function discoverSkills(sha) {
 // --- manifest ----------------------------------------------------------------
 
 /**
- * Rename a build so it cannot shadow the published plugin.
+ * Build under a sibling identity that cannot shadow the published plugin.
  *
- * A workspace test build and the public listing share the name `graffiticode`,
- * and the handle resolves to whichever the client prefers — observed
- * 2026-09-17, where the published v1 shadowed a workspace install that had
- * already been disabled (disabling is not uninstalling). Nothing in the package
- * can stop that collision; only a different identity can.
+ * A test build and the public listing both answer to "Graffiticode", and the
+ * handle resolves to whichever the client prefers — observed 2026-09-17, where
+ * the published v1 shadowed a workspace install that had already been disabled
+ * (disabling is not uninstalling, and an admin-policy install cannot be removed
+ * by a member at all). Nothing inside the package breaks that tie; only a
+ * different name does.
+ *
+ * `-v2` rather than `-dev`: the collision is with v1 specifically, and the build
+ * being installed beside it IS version 2. It stays a separate identity from the
+ * submission, which ships as plain `graffiticode` — a version number belongs in
+ * the version field, not in the name a listing carries forever.
  */
-function devIdentity(meta) {
+function altIdentity(meta) {
   return {
     ...meta,
-    name: `${meta.name}-dev`,
-    interface: { ...meta.interface, displayName: `${meta.interface.displayName} (dev)` },
+    name: `${meta.name}-v2`,
+    interface: { ...meta.interface, displayName: `${meta.interface.displayName}-v2` },
   };
 }
 
@@ -460,7 +466,7 @@ function main() {
   const version = opts.version ?? pkgVersion;
   console.log(`  version      ${version}  (${opts.version ? "CLI OVERRIDE — not from the ref" : "package.json @ ref"})`);
   if (opts.version) console.log("               note: an overridden version is not reproducible from the ref alone");
-  console.log(`  schema       ${opts.schema}${opts.dev ? "  (DEV identity — will not shadow the published plugin)" : ""}`);
+  console.log(`  schema       ${opts.schema}${opts.dev ? "  (-v2 identity — will not shadow the published plugin)" : ""}`);
 
   const metaBlob = readBlob(sha, "plugin.meta.json");
   if (!metaBlob) envFail(`ref ${short} has no plugin.meta.json — the listing copy the manifest is built from`);
@@ -492,7 +498,7 @@ function main() {
     return { id, bytes, fm: parsed.fm };
   });
 
-  const plugin = buildPluginObject(opts.dev ? devIdentity(meta) : meta, version);
+  const plugin = buildPluginObject(opts.dev ? altIdentity(meta) : meta, version);
   const serialized = opts.schema === "portable" ? serializePortable(plugin) : serializeNative(plugin);
   const pluginJson = Buffer.from(JSON.stringify(serialized, null, 2) + "\n", "utf8");
 
@@ -564,7 +570,7 @@ function main() {
 
   // A non-default ref gets the short SHA in its filename, so an experimental
   // build cannot silently overwrite the release artifact at the same path.
-  const suffix = `${opts.dev ? "-dev" : ""}${opts.ref === "origin/main" ? "" : `+${sha.slice(0, 7)}`}`;
+  const suffix = `${opts.dev ? "-v2" : ""}${opts.ref === "origin/main" ? "" : `+${sha.slice(0, 7)}`}`;
   const out = opts.out ?? join(ROOT, "dist", `graffiticode-plugin-${version}${suffix}.zip`);
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, zip);
