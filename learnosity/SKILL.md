@@ -1,28 +1,29 @@
 ---
 name: learnosity
-description: Learnosity work in Graffiticode, covering two jobs. (1) AUTHOR ITEM CONTENT — Learnosity-compatible assessment items (MCQ, short text, cloze, formula, classification, order list, choice matrix, and other Learnosity question types) for a Learnosity Item Bank or a Learnosity-integrated LMS. (2) PLAN AN INTEGRATION — how to embed and configure a Learnosity API in your own app (the authoring experience — item editor, item browser, activity editor), returning an implementation recipe for a developer to build against. PRECONDITION - use ONLY when the user has actually named Learnosity (or a Learnosity Item Bank, the Items API, the Author API, or a Learnosity-integrated LMS). Learnosity is a specific vendor's format, not a general quiz format - question type (MCQ, cloze, short text) is never the reason to come here, since every assessment platform has those. For any assessment request that does not name Learnosity, use the `assessments` skill instead.
+description: Learnosity work in Graffiticode, three jobs. (1) AUTHOR ITEM CONTENT — Learnosity assessment items (MCQ, cloze, short text, choice matrix, and other question types) for an Item Bank or Learnosity-integrated LMS. (2) PLAN AN AUTHORING-UX INTEGRATION — embedding and configuring the Learnosity item editor, item browser, or activity editor in your app. (3) PLAN A DATA JOB — server-to-server reads and writes of an Item Bank and its assessment results — items, tags, session responses, offline packages. Jobs 2 and 3 return a host-neutral recipe. PRECONDITION - use ONLY when the user has actually named Learnosity (or a Learnosity Item Bank, Items API, Author API, Data API, or Learnosity-integrated LMS). Learnosity is one vendor's format, not a general quiz format - question type is never the reason to come here. Assessment work that does not name Learnosity goes to the `assessments` skill.
 ---
 
 # Learnosity
 
 Learnosity work via Graffiticode. This skill is the narrow, Learnosity-focused sibling of `assessments`.
 
-**Check the precondition first.** Learnosity is one vendor. Use this skill only when the user named Learnosity — by name, or via a Learnosity Item Bank, the Items API, the Author API, or a Learnosity-integrated LMS. If they described an assessment without naming Learnosity ("a 5-question quiz on the water cycle"), you are in the wrong skill: go to `assessments`. Never infer Learnosity from the question type.
+**Check the precondition first.** Learnosity is one vendor. Use this skill only when the user named Learnosity — by name, or via a Learnosity Item Bank, the Items API, the Author API, the Data API, or a Learnosity-integrated LMS. If they described an assessment without naming Learnosity ("a 5-question quiz on the water cycle"), you are in the wrong skill: go to `assessments`. Never infer Learnosity from the question type.
 
 You don't need to know Learnosity's internal taxonomy (question types, scoring models, item references, activity wiring, API signing). The Graffiticode backend encodes all of that — your job is to pass a clear natural-language description and let the backend produce the output.
 
-## Two jobs live in this domain — decide which one you're in first
+## Three jobs live in this domain — decide which one you're in first
 
-The domain serves two different jobs with two different deliverables. Picking the wrong one wastes the turn, because each backend explicitly refuses the other's work.
+The domain serves three different jobs with three different deliverables. Picking the wrong one wastes the turn, because each backend explicitly refuses the others' work.
 
 | The user wants… | The job | What comes back |
 |---|---|---|
 | A question, item, passage, or activity **authored** — stems, options, answer keys, scoring | **Item content** | Learnosity item JSON, rendered as a widget, saveable to their Item Bank |
-| To know **how to embed or configure a Learnosity API** in their own app — the item editor, item browser, activity editor, activity list; signing, permissions, allowed widget types, locked mode | **Integration planning** | A host-language-neutral **recipe**: goal, preconditions, procedure, gotchas, verification steps |
+| To know **how to embed or configure the Learnosity authoring experience** in their own app — the item editor, item browser, activity editor, activity list; signing, permissions, allowed widget types, locked mode | **Authoring-UX integration** | A host-language-neutral **recipe**: goal, preconditions, procedure, gotchas, verification steps |
+| To **read or write an Item Bank and its assessment results from their own server** — pulling items, writing items, setting or updating tags, reading session responses, submitting sessions, polling the async job channel, building an offline package | **Data job** | The same host-language-neutral **recipe**, plus a dedicated **paging** section |
 
-The tell is the verb. *"Write me a Learnosity cloze item on photosynthesis"* is content. *"How do I embed the Learnosity item editor in my LMS for author u123, restricted to MCQ and cloze?"* is integration — the user is a developer building a system, not an author writing a question.
+The tell is the verb, and then the audience. *"Write me a Learnosity cloze item on photosynthesis"* is content — someone is authoring a question. Once the verb is *embed*, *configure*, *extract*, *sync*, *bulk-load*, or *submit*, the user is a developer building a system, and a second tell separates the two integration jobs: **is the deliverable something a person looks at and works in, or data a program consumes?** *"How do I embed the Learnosity item editor in my LMS for author u123, restricted to MCQ and cloze?"* wants a UX of the data — authoring-UX integration. *"How does our nightly job pull every item in the bank and push updated tags back?"* wants the data itself, server-to-server — a data job. Same Item Bank, two views.
 
-They compose: someone building an authoring experience often also wants seed items in it. Run the jobs separately, in their own languages — never ask the integration backend to write item content, or the content backend to explain an API.
+They compose but they run separately. Someone building an authoring experience usually wants seed items in it; someone bulk-loading a bank needs the item JSON composed before anything can move it. Content composes the payload, the data job moves it, the authoring integration renders it — three jobs, three languages, one at a time. Never ask either integration backend to write item content, the content backend to explain an API, or the authoring-UX backend to plan a server-to-server read.
 
 ## Prerequisite
 
@@ -35,11 +36,16 @@ The Graffiticode MCP connector must be installed and connected. If `list_languag
 Call `list_languages(domain: "learnosity")`. Read each language's `description` and `when_to_use` and pick by **job**, not by position in the list or by a remembered ID:
 
 - **Item content** → the language that authors assessment items. If two author item content and one is marked **Deprecated**, choose the other — the deprecated one is retained only for existing items.
-- **Integration planning** → the language whose `when_to_use` describes producing integration recipes for a Learnosity API, and which says explicitly that it does **not** author item content. That negative clause is the reliable discriminator; question types and item types are not.
+- **Authoring-UX integration** → the language whose `when_to_use` frames itself as *a UX of the data* — a person authoring in a browser — and describes embedding an item editor, item browser, activity editor, or activity list.
+- **Data job** → the language whose `when_to_use` frames itself as *the data itself* — a program reading or writing the bank server-to-server — and describes operations, request payloads, and paging.
+
+**Both integration languages say they do not author item content, so that clause no longer separates them.** It still earns its keep in one direction — it tells you reliably that you have left the content job — but on its own it now matches two languages, and picking the first match is a coin flip. The axis that does separate them is the one the languages state about themselves: **a UX of the data versus the data.** Ask what the deliverable is for. A person clicking through an editor is the UX view. A nightly sync, an extraction, a bulk load, a submission — anything the caller's own code fetches or sends — is the data view. Question types and item types discriminate nothing here.
+
+**A rendered report for a human is neither, and no language covers it.** It is a UX, but not the authoring UX; it is built from the data, but it is not data a program consumes. Say plainly that no dialect covers it rather than stretching the data-job recipe (which returns records, not a report) or the authoring recipe over it. The vendor's Data API does have reports and datasets endpoints that belong to the data job — those are server-to-server reads and are not the Reports API, whatever the shared word suggests.
 
 **Honor the negative clauses.** Each language states what it is *not* for. A language that says it does not author content will not author content, however well the request seems to fit otherwise — and vice versa. If the returned set contains nothing for the user's job, say so and ask; do not force the nearest match.
 
-The domain grows (activity assemblers, item-bank sync, delivery and reporting surfaces are all plausible additions). Because you match on self-description rather than ID, a new member routes correctly with no change to this skill.
+The domain grows — item-bank sync arrived as the third job, and activity assemblers, delivery and rendered reporting surfaces are all plausible next members. Because you match on self-description rather than ID, a new member routes correctly with no change to this skill.
 
 **2. Read the language info.**
 
@@ -67,7 +73,7 @@ Good: "Author a Learnosity multiple-choice item on adding fractions with unlike 
 
 **Do not call `get_item` before `update_item` for edits or saves.** `update_item` already reads the current state internally; an explicit `get_item` first is redundant and slower. Only call `get_item` when the user explicitly asks to inspect the item's current content or when you need to cite the item ID back to them.
 
-## Planning an integration
+## Planning an authoring-UX integration
 
 Here the backend is an **oracle, not a renderer**. You describe an integration *design*; it validates the design, tells you what's missing, and — once the design is complete — hands back a recipe a developer implements in their own stack. There is no meaningful widget, and the recipe, not the item, is the deliverable.
 
@@ -101,7 +107,29 @@ Some of what the recipe describes is verified against the live Learnosity API; s
 
 **Report the uncertainty you were given.** If the recipe says a restriction is *intended* but its binding is unconfirmed, say so to the user. Telling them "the editor is restricted to multiple choice and cloze" because the page rendered cleanly is exactly how a silent non-restriction reaches production.
 
-**Check the scope before promising.** The integration surface covers the authoring experience; other Learnosity surfaces (item-bank CRUD via the Data API, learner delivery via the Items API, the Reports API) may or may not be covered as the language grows. `get_language_info`'s `supported_item_types` and `not_for` are the current truth — read them rather than trusting this sentence, and if the user's surface isn't covered, say so plainly instead of stretching the nearest recipe over it.
+**Check the scope before promising.** This surface covers the authoring experience; other Learnosity surfaces (learner delivery via the Items API, the Reports API) may or may not be covered as the language grows. `get_language_info`'s `supported_item_types` and `not_for` are the current truth — read them rather than trusting this sentence, and if the user's surface isn't covered, say so plainly instead of stretching the nearest recipe over it.
+
+## Planning a data job — reading and writing the bank from your own server
+
+Same posture as the authoring-UX job: the backend is an **oracle, not a renderer**, the recipe is the deliverable, and holes come back as steering warnings you fill by asking the user, never by guessing. What differs is what makes a design *complete*, and what goes wrong when it isn't.
+
+**Describe the job, not the request.** `create_item(language, description)` where the description states **which operation** — reading items out of a bank, writing items into it, setting or updating tags, reading session responses, submitting sessions, polling the async job channel, building an offline package — **what the request carries** (which bank, which references, which filters, which fields, what payload), and **how far it reads**.
+
+**A data-job design is not complete until it declares its paging policy: one page, or to exhaustion.** That is a required part of the design, not a refinement of it, and it is the hole you must never leave to the backend's judgement. State it in the description.
+
+Good: *"From our nightly sync, read every item in the bank tagged Grade 5 — all pages, to exhaustion — then update the difficulty tag on each, merging with the tags already there rather than replacing them."*
+
+**The failure this job exists to prevent is the truncated read.** A short result set comes back HTTP 200, with a well-formed body, and a records count that counts *the page*, not the total. Nothing about it looks wrong. A job that never declared its paging policy quietly processes the first page of the bank forever, and the user finds out months later from missing data rather than from an error. Every other hazard here announces itself; this one doesn't. That is why the declaration is mandatory.
+
+**There is no universal paging loop, and one family's rule is a bug in the other.** The item-bank family and the sessions family terminate on opposite signals. The recipe states which rule applies to the operation you asked for — implement that one, as written, for that operation. Do not carry it across to the other family, and do not fold both into a "generic" pager; a loop that waits for the wrong end signal either stops early or never stops.
+
+**Writes replace by default, and the verb does not predict it.** The same endpoint can replace under one verb and merge under another, documented identically — so the name of the call tells you nothing about which you are getting. Under replace semantics, anything omitted from the payload is cleared, and the response echoes nothing back to warn you: a partial payload returns a clean success and is a silent deletion. A write job must **say which semantics it intends**, and you take the answer from the recipe, never from the verb.
+
+**It is documentation-only. It never calls Learnosity and holds no credentials.** The caller's own code signs and sends every request with the caller's own consumer key. Don't ask this backend to run the job, fetch a real record, or confirm what the live bank returned — it cannot, and a reply that reads as though it did is a recipe you have misread.
+
+**An operation the language doesn't model is unbuilt, not unsupported — and must not be guessed at.** Coverage of the vendor's data surface is early and partial on purpose. If the user's operation isn't among the ones the language says it models, the answer is "no dialect covers that yet," not the nearest modelled operation bent to fit. Read `get_language_info`'s `supported_item_types` and `not_for` for the current list rather than trusting any enumeration written here, and never extrapolate from a covered operation to its obvious-looking sibling — that a read is modelled says nothing about whether the matching delete is.
+
+**The confidence rule above applies here unchanged.** Some operations are modelled from the vendor's documentation only and have never been exercised against a live consumer, and the recipe says which. Relay that exactly as given; do not upgrade it because the call looks routine. A documented-but-unexercised **write** is the sharpest form of this — under replace semantics the destructive version of the call returns the same clean success as the safe one, so there is no observation you can make afterwards that distinguishes them.
 
 ## Side-effectful operations (saving item content to the item bank)
 
@@ -141,7 +169,7 @@ Distinct from saving to the **Learnosity** item bank (above): the Graffiticode i
 
 ## Guardrails
 
-- **Pick the job before the language.** Authoring item content and planning an integration are different jobs with different deliverables, and each backend refuses the other's work. Decide which one the user is in, then match a language to it by `description`/`when_to_use`.
+- **Pick the job before the language.** Authoring item content, planning an authoring-UX integration, and planning a data job are three jobs with three deliverables, and each backend refuses the others' work. Decide which one the user is in — content, a UX of the data, or the data itself — then match a language to it by `description`/`when_to_use`.
 - **Never hand-write Learnosity JSON or Graffiticode DSL.** The backend produces both from your natural-language description.
 - **Never hardcode a language ID in your reasoning.** Always call `list_languages(domain: "learnosity")` at session start — the domain may add members over time.
 - **Never invent an integration fact.** A serving domain, author user id, or item reference is the user's deployment detail. When the backend flags it as a hole, ask — a guessed value yields a recipe that fails silently.
@@ -151,3 +179,9 @@ Distinct from saving to the **Learnosity** item bank (above): the Graffiticode i
 - **Stay in the Learnosity lane.** If the user asks for something outside Learnosity (flashcards, spreadsheets, concept webs), suggest the broader `assessments` skill rather than forcing a Learnosity fit.
 - **Iterate, don't recreate.** On follow-up edits, call `update_item` on the existing `item_id`; fresh creates lose conversation history.
 - **Don't improvise out-of-band save paths.** Saves go through `update_item`; ambiguous results get verified by the user in the Learnosity UI, not by inventing API-direct or computer-use workarounds.
+- **Never plan a paged read without declaring how far it goes.** One page or to exhaustion is part of the design, not a detail. A read that stops early returns HTTP 200 with a well-formed body and a count of the page, so nothing downstream will ever tell the user data is missing.
+- **Never reuse a paging loop across endpoint families.** The item-bank and sessions families end on opposite signals. Implement the rule the recipe gives for the operation you asked about, and write a separate loop for a different family rather than generalizing.
+- **Never send a partial write payload without confirming the semantics.** Replace is the default and the verb does not predict it. Under replace, every field you omit is cleared and the response says nothing — get the semantics from the recipe and state them to the user before they run it against a real bank.
+- **Never ask a documentation-only backend to touch the vendor.** It does not call Learnosity and holds no credentials; the user's own code signs and sends. Don't ask it to execute, verify live, or hand over keys, and don't present its recipe as something already run.
+- **An unmodelled operation is unbuilt, not unsupported.** If the data-job vocabulary doesn't cover the operation, say no dialect covers it yet. Routing it to the nearest modelled operation produces a confident recipe for the wrong call.
+- **A rendered report for a human is not a data job.** Same Item Bank, but the data plane returns records, not a report. Say no dialect covers it rather than dressing up a paged read as reporting.

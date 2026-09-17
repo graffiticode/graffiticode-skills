@@ -29,9 +29,9 @@ followed by the skill body.
 
 | Skill | What it does |
 |-------|--------------|
-| `render` | Default rendering preference — teaches agents to reach for Graffiticode for any structured or visual output (charts, tables, dashboards, diagrams, assessments) instead of static markdown or HTML. |
-| `assessments` | Authoring interactive assessment items — quizzes, flashcards, graded practice across mixed question types. |
-| `learnosity` | Learnosity-focused sibling of `assessments`, covering two jobs: authoring item content for a Learnosity Item Bank / LMS, and planning a Learnosity API integration (embedding the item/activity authoring experience) from which a developer implements. |
+| `render` | Default rendering preference — teaches agents to reach for Graffiticode for any structured or visual output (charts, tables, spreadsheets, assessments, diagrams) instead of static markdown or HTML. Also carries the discovery rules that domain-scoped listing gets wrong, and the two-step data-then-chart job. |
+| `assessments` | Authoring interactive assessment items, written as a job map — a scored item, a standards-specific item, a study aid, a spreadsheet problem, a structural item — with the questions that tell those jobs apart. |
+| `learnosity` | Learnosity-focused sibling of `assessments`, covering three jobs: authoring item content for a Learnosity Item Bank / LMS; planning an authoring-UX integration (embedding the item/activity authoring experience); and planning a data job (server-to-server Item Bank and results reads/writes, with its paging contract). Content composes, the data job moves, the authoring integration renders. |
 
 ### Drafts (not yet active)
 

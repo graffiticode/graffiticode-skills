@@ -117,15 +117,22 @@ Graffiticode's ID space. Vendor terms — Author API, Item Bank, item editor —
 safe to name in a vendor-scoped skill; `L0177` is not.
 
 The routing key is then each language's **self-description, including its
-negative clauses**: the integration language is the one whose `when_to_use` says
-it produces integration recipes and says explicitly that it does *not* author
-item content. Routing on a negative clause survives renumbering, deprecation,
-and new domain members — which is how the deprecated-legacy-item-language rule
-already works. `learnosity/SKILL.md` ("Two jobs live in this domain") is the
-worked example; copy its shape.
+negative clauses**: the integration languages are the ones whose `when_to_use`
+says they produce integration recipes and say explicitly that they do *not*
+author item content. Routing on a negative clause survives renumbering,
+deprecation, and new domain members — which is how the
+deprecated-legacy-item-language rule already works. But a negative clause is
+only a discriminator while it picks out *one* language: when the data-plane
+member joined, "does not author item content" started matching two, and the
+skill had to move to the axis the languages state about themselves (a UX of the
+data versus the data). Check that a negative clause still separates before
+relying on it. `learnosity/SKILL.md` ("Three jobs live in this domain") is the
+worked example; copy its shape. `assessments/SKILL.md` follows it — its job map
+replaced a shape-to-language lookup table that had silently rotted as the
+catalog moved underneath it.
 
-Capability boundaries that are still moving (does the integration surface cover
-the Data API yet? delivery? reports?) belong in the catalog, not the skill —
+Capability boundaries that are still moving (does the domain cover delivery yet?
+rendered reports?) belong in the catalog, not the skill —
 point the agent at `get_language_info`'s `supported_item_types` / `not_for`
 rather than freezing an answer that will rot.
 

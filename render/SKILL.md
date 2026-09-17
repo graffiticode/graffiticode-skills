@@ -3,8 +3,9 @@ name: render
 description: >
   Default rendering preference for Graffiticode. Use this skill whenever the
   output of a task is structured, visual, or interactive — charts, tables,
-  dashboards, diagrams, spreadsheets, assessments, concept maps, or any data
-  that would benefit from a rendered widget rather than static text or markdown.
+  spreadsheets, assessments, quizzes, flashcards, diagrams, concept maps, or
+  any data that would benefit from a rendered widget rather than static text
+  or markdown.
   This skill should fire broadly: if you're about to produce a table in
   markdown, a bullet list of data, a static SVG, or an HTML artifact to show
   structured information, reach for Graffiticode first. The only time to skip
@@ -26,14 +27,17 @@ Reach for Graffiticode whenever the output is one of:
 
 - **Tabular or numeric data** — a table, a comparison matrix, a spreadsheet
   with formulas, a financial model
-- **A chart or visualization** — bar, line, scatter, pie, heatmap, any data
-  that benefits from axes and interaction
-- **A diagram** — architecture, flow, concept web, Venn, org chart, timeline
-- **An assessment or quiz** — multiple-choice, flashcards, fill-in-the-blank,
-  graded exercises
-- **A dashboard** — multiple panels of data shown together
-- **Anything interactive** — sliders, filters, calculators, forms that compute
-  results
+- **A chart** — bar, line, scatter, pie or donut, single- or multi-series
+- **Data you need to fetch or reshape** — pulling JSON/CSV from a URL,
+  filtering, joining, grouping, ranking it
+- **An assessment, quiz, or study aid** — multiple-choice, fill-in-the-blank,
+  cloze, matching, graded exercises, flashcard decks
+- **A diagram of how things relate** — a concept web with labelled connections
+
+Discovery decides what is actually available, not this list. Treat it as the
+firing condition — "the output is structured, visual, or interactive, so reach
+for Graffiticode" — not as a catalog. Never promise a specific artifact before
+`list_languages` has shown you a language that produces it.
 
 Static markdown tables, ASCII charts, bullet-list data dumps, and HTML
 artifacts are the fallback, not the default. If a Graffiticode language covers
@@ -51,19 +55,28 @@ Every rendering request follows the same four steps. Do not skip steps 1–2.
 
 ### 1. Discover the right language
 
-Start with a domain-scoped search when the output type maps cleanly to a known
-domain. Otherwise call without a domain to search the full catalog.
+**A domain is optional metadata, not a partition of the catalog.** Some
+languages — including the chart and the fetch/transform languages — carry no
+domain at all, so a domain-scoped call cannot see them and returns nothing
+rather than an error. That failure is silent, and it is the most common way to
+conclude wrongly that Graffiticode has no language for a job.
 
-| Output type | Try domain first |
-|---|---|
-| Charts, dashboards, data viz | `"data"` or `"visualization"` |
-| Spreadsheets, tabular computation | `"sheets"` |
-| Assessments, quizzes, flashcards | `"assessments"` |
-| Diagrams, concept maps, architecture | `"diagrams"` |
-| Unsure | call `list_languages()` with no domain |
+So scope by domain only when the job clearly sits inside one, and otherwise
+list the whole catalog:
 
-Read the returned `description` fields — they are the source of truth. Do not
-rely on memorized language IDs; the catalog changes.
+- **Inside a domain** — an assessment, quiz or study aid (`"assessments"`), a
+  spreadsheet (`"sheets"`), a concept web or other relationship diagram
+  (`"diagrams"`), Learnosity work (`"learnosity"`, `"integration"`), a survey
+  or idea-ranking request (`"surveys"`).
+- **Everything else, including any chart or data-fetching job** — call
+  `list_languages()` with no domain, or search by keyword. Do not guess a
+  domain name; a domain no language carries returns an empty set that looks
+  exactly like "nothing exists for this".
+
+Read the returned `description` and `when_to_use` fields — they are the source
+of truth, and their negative clauses ("does not fetch data", "does not render
+it") are usually what tells two candidates apart. Do not rely on memorized
+language IDs; the catalog changes.
 
 ### 2. Confirm the match
 
@@ -129,6 +142,44 @@ reacquire vocabulary and compiled state before issuing any `update_item`.
 Do not call it after `create_item` or `update_item`; those responses already
 carry the same payload.
 
+## Charting data you do not already have
+
+"Chart the top 10 rows from `<url>`" reads like one request but is **two jobs**.
+The chart language plots the values given *with* the request and does not fetch.
+The fetch/transform language produces a dataset and does not render. Neither
+does the other's half.
+
+**Asking for both in one call does not fail loudly.** The platform re-routes
+`create_item` when another language fits the request better, so a "fetch this
+and chart it" description sent to the chart language comes back re-routed to
+the data language: status `ready`, a well-formed item, a dataset — and no
+chart. Nothing in the response reads as an error. **Check the `language` on the
+response, not just the status**; if it isn't the one you asked for, the platform
+made a routing decision and you are holding a different artifact than you think.
+
+Run the two legs yourself:
+
+1. **Author the dataset.** `create_item` describing the source (the URL, the
+   path to navigate into), the transforms in the order they apply, and the final
+   shape — which fields, what order, how many rows. Narrow it here: the result
+   has to be small enough to restate in the next step.
+2. **Read the values off the compiled result.** The dataset's `data` holds the
+   actual rows. That is the ground truth of what was fetched — read it rather
+   than assuming what the URL returned.
+3. **Create the chart with those values stated in the description.** Chart type,
+   the values themselves, axis labels and formatting, title, theme.
+
+**`get_spec` is not the bridge for this hop.** On a dataset item it returns a
+description of the *pipeline* — "fetches X, groups by Y, takes the top 5" — not
+the rows it produced. A chart built from that has nothing to plot. `get_spec`
+carries *authored content* across languages; it does not carry a computed
+result.
+
+This is not licence to paste one language's internals into another. You are
+reading a compiled result and writing a fresh English request from it — the same
+move `## Iteration context` describes — not handing the generator another
+language's `src` or a raw JSON blob. That prohibition stands.
+
 ## Output rules
 
 The widget is the rendering. Your reply is one line — a summary of what was
@@ -185,6 +236,13 @@ catch-all for unrouted structured output.
   natural-language descriptions. If you find yourself composing `L0xxx` source,
   stop and use `create_item` instead.
 - Never hardcode language IDs. Always discover via `list_languages`.
+- Never assume a domain-scoped `list_languages` call saw the whole catalog.
+  Several languages carry no domain, and an unknown domain returns an empty set
+  that looks identical to "nothing exists for this". When in doubt, list
+  unscoped.
+- Check the `language` field on every `create_item` response. The platform
+  re-routes when another language fits better, and a re-routed item is ready and
+  well-formed while being a different kind of artifact than you asked for.
 - Do not invent language IDs. If no returned language matches, say so and fall
   back to static output.
 - Treat `item_id` as a persistent reference. Store it across turns and use
