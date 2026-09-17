@@ -14,5 +14,11 @@
       "Create a concept web explaining how rain forms.",
       "Create a Learnosity water cycle assessment: one multiple-choice and one fill-in-the-blank, answers marked."
     ]
+  },
+  "mcpServers": {
+    "graffiticode": {
+      "type": "streamable-http",
+      "url": "https://mcp.graffiticode.org/mcp"
+    }
   }
 }

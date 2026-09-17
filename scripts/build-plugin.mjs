@@ -75,7 +75,7 @@ function parseArgs(argv) {
     fetch: true,
     out: null,
     version: null,
-    schema: "native",
+    schema: "portable",
     dryRun: false,
     keepStaging: false,
   };
@@ -114,7 +114,7 @@ function help() {
   --no-fetch       skip \`git fetch origin\`          (default: fetch)
   --out <path>     output path override
   --version <sv>   override the version from the ref
-  --schema <s>     native | portable                (default: native)
+  --schema <s>     portable | native                (default: portable)
   --dry-run        build and hash, write nothing
   --keep-staging   leave the temp dir and print its path
   -h, --help
@@ -269,21 +269,31 @@ function buildPluginObject(meta, version) {
     description: meta.interface?.longDescription,
     author: meta.author,
     interface: meta.interface,
+    mcpServers: meta.mcpServers,
   };
 }
 
 function serializeNative(o) {
-  return { name: o.name, version: o.version, description: o.description, author: o.author, interface: o.interface };
+  const out = { name: o.name, version: o.version, description: o.description, author: o.author, interface: o.interface };
+  // A path, not an inline object: the file is also what a host that discovers
+  // mcp.json by convention will find.
+  if (o.mcpServers) out.mcpServers = "./mcp.json";
+  return out;
 }
 
 function serializePortable(o) {
+  // The portable schema is `additionalProperties: false`, so everything
+  // OpenAI-specific lives under the extension key — including the server
+  // reference. The mcp.json file ships either way, for convention discovery.
+  const openai = { interface: o.interface };
+  if (o.mcpServers) openai.mcpServers = "./mcp.json";
   return {
     $schema: "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
     name: o.name,
     version: o.version,
     description: o.description,
     author: o.author,
-    extensions: { "com.openai": { interface: o.interface } },
+    extensions: { "com.openai": openai },
   };
 }
 
@@ -450,8 +460,23 @@ function main() {
   const serialized = opts.schema === "portable" ? serializePortable(plugin) : serializeNative(plugin);
   const pluginJson = Buffer.from(JSON.stringify(serialized, null, 2) + "\n", "utf8");
 
+  // A plugin with no server is skills-only: the portal lists it, and there is
+  // nothing to invoke by name. Verified 2026-09-17 — an install without this
+  // listed correctly and `@graffiticode` was not found.
+  const mcpJson = plugin.mcpServers
+    ? Buffer.from(
+        JSON.stringify(
+          { $schema: "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json", mcpServers: plugin.mcpServers },
+          null,
+          2,
+        ) + "\n",
+        "utf8",
+      )
+    : null;
+
   const entries = [
     { path: "plugin.json", bytes: pluginJson },
+    ...(mcpJson ? [{ path: "mcp.json", bytes: mcpJson }] : []),
     ...skills.map((s) => ({ path: `skills/${s.id}/SKILL.md`, bytes: s.bytes })),
   ];
   const totalBytes = entries.reduce((n, e) => n + e.bytes.length, 0);
