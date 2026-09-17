@@ -39,7 +39,11 @@ const FLAG_UTF8 = 0x0800;
 
 const VERSION_NEEDED = 20; // spec 2.0
 const VERSION_MADE_BY = (3 << 8) | VERSION_NEEDED; // 3 = Unix
-const EXTERNAL_ATTRS = 0o100644 << 16; // fixed mode for every entry
+// Fixed mode (0100644) for every entry, regardless of the staged files' actual
+// permissions. `>>> 0` is load-bearing: JS bitwise operators work on SIGNED
+// 32-bit ints, and 0o100644 << 16 overflows to a negative number that
+// writeUInt32LE rejects outright.
+const EXTERNAL_ATTRS = (0o100644 << 16) >>> 0;
 
 const MAX_ENTRIES = 0xffff; // without Zip64
 const MAX_BYTES = 0xffffffff;
