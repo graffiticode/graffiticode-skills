@@ -79,6 +79,7 @@ function parseArgs(argv) {
     dryRun: false,
     keepStaging: false,
     dev: false,
+    noApp: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -94,6 +95,7 @@ function parseArgs(argv) {
       case "--version": opts.version = next(); break;
       case "--schema": opts.schema = next(); break;
       case "--dev": opts.dev = true; break;
+      case "--no-app": opts.noApp = true; break;
       case "--dry-run": opts.dryRun = true; break;
       case "--keep-staging": opts.keepStaging = true; break;
       case "-h":
@@ -118,6 +120,7 @@ function help() {
   --version <sv>   override the version from the ref
   --schema <s>     portable | native                (default: portable)
   --dev            build as <name>-v2, a sibling identity for workspace testing
+  --no-app         omit .app.json, so the client talks to mcp.json directly
   --dry-run        build and hash, write nothing
   --keep-staging   leave the temp dir and print its path
   -h, --help
@@ -498,7 +501,17 @@ function main() {
     return { id, bytes, fm: parsed.fm };
   });
 
-  const plugin = buildPluginObject(opts.dev ? altIdentity(meta) : meta, version);
+  // Dropping the app binding is a diagnostic, not a preference.
+  //
+  // A registered app carries a REVIEWED SNAPSHOT of tool metadata — `_meta`, the
+  // linked UI resource, its CSP — captured at Scan Tools. Our published app was
+  // scanned before OpenAI clients were served a widget at all, so a plugin bound
+  // to it calls the live server (the item really is created) and still shows no
+  // inline render, because the marker lives in the snapshot. Without the
+  // binding, mcp.json is the whole connection and there is no snapshot in the
+  // path to be stale.
+  const baseMeta = opts.dev ? altIdentity(meta) : meta;
+  const plugin = buildPluginObject(opts.noApp ? { ...baseMeta, apps: undefined } : baseMeta, version);
   const serialized = opts.schema === "portable" ? serializePortable(plugin) : serializeNative(plugin);
   const pluginJson = Buffer.from(JSON.stringify(serialized, null, 2) + "\n", "utf8");
 
@@ -570,7 +583,7 @@ function main() {
 
   // A non-default ref gets the short SHA in its filename, so an experimental
   // build cannot silently overwrite the release artifact at the same path.
-  const suffix = `${opts.dev ? "-v2" : ""}${opts.ref === "origin/main" ? "" : `+${sha.slice(0, 7)}`}`;
+  const suffix = `${opts.dev ? "-v2" : ""}${opts.noApp ? "-noapp" : ""}${opts.ref === "origin/main" ? "" : `+${sha.slice(0, 7)}`}`;
   const out = opts.out ?? join(ROOT, "dist", `graffiticode-plugin-${version}${suffix}.zip`);
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, zip);
