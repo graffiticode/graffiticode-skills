@@ -15,18 +15,12 @@
 import { readdirSync, readFileSync, existsSync, statSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import yaml from "js-yaml";
+
+// Shared with the packager so the gate and the artifact read a skill the same
+// way — see the header of lib/frontmatter.mjs.
+import { parseFrontmatter, NAME_MAX, DESC_MAX, DESC_WARN } from "./lib/frontmatter.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-
-// Claude Code caps SKILL.md frontmatter. Skills here are consumed both by the
-// MCP server and by a local install into ~/.claude/skills/, so the stricter
-// consumer sets the budget. WARN sits below MAX because the description is where
-// capability advertising accumulates — you want to know you are near the ceiling
-// while adding the capability, not after it silently truncates.
-const NAME_MAX = 64;
-const DESC_MAX = 1024;
-const DESC_WARN = 900;
 
 const errors = [];
 const warnings = [];
@@ -58,30 +52,12 @@ for (const skill of skills) {
   const raw = readFileSync(skill.path, "utf8");
 
   // --- frontmatter ---------------------------------------------------------
-  if (!raw.startsWith("---\n")) {
-    err(id, "does not begin with a `---` frontmatter delimiter");
+  const parsed = parseFrontmatter(raw);
+  if (!parsed.ok) {
+    err(id, parsed.error);
     continue;
   }
-  const end = raw.indexOf("\n---\n", 3);
-  if (end === -1) {
-    err(id, "frontmatter is not closed by a `---` line");
-    continue;
-  }
-
-  let fm;
-  try {
-    fm = yaml.load(raw.slice(4, end + 1));
-  } catch (e) {
-    // The whole reason this script exists.
-    err(id, `frontmatter is not valid YAML — the server would drop this skill from resources/list: ${e.message.split("\n")[0]}`);
-    continue;
-  }
-  if (fm === null || typeof fm !== "object") {
-    err(id, "frontmatter did not parse to a mapping");
-    continue;
-  }
-
-  const body = raw.slice(end + 5);
+  const { fm, body } = parsed;
 
   // --- name ----------------------------------------------------------------
   const name = fm.name;

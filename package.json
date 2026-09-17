@@ -1,11 +1,16 @@
 {
   "name": "graffiticode-skills",
+  "version": "2.1.0",
   "private": true,
   "type": "module",
   "description": "Source-of-truth repository for Graffiticode agent skills",
+  "engines": {
+    "node": ">=20.15"
+  },
   "scripts": {
     "validate": "node scripts/validate-skills.mjs",
-    "smoke": "node scripts/smoke-skills.mjs"
+    "smoke": "node scripts/smoke-skills.mjs",
+    "package": "node scripts/build-plugin.mjs"
   },
   "devDependencies": {
     "js-yaml": "^4.1.0"
