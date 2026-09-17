@@ -23,6 +23,32 @@ jobs:
       - run: npm ci
       - run: npm run validate
 
+  package:
+    name: package (dry-run + determinism)
+    # The ZIP uploaded to OpenAI is built from a commit, so a skill edit that
+    # would break packaging — a new top-level dir, an over-cap description, a
+    # dot-prefixed name — must fail on the PR rather than at the portal.
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # --ref resolves against real history
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # Two independent processes must agree on the artifact hash. Separate
+      # processes are the point: an in-process double build would hide
+      # Date.now(), iteration-order and tmpdir nondeterminism.
+      - name: build twice and compare
+        run: |
+          a=$(npm run --silent package -- --dry-run --no-fetch --ref ${{ github.sha }} | grep -o 'sha256  [0-9a-f]*')
+          b=$(npm run --silent package -- --dry-run --no-fetch --ref ${{ github.sha }} | grep -o 'sha256  [0-9a-f]*')
+          echo "$a"
+          [ "$a" = "$b" ] || { echo "NOT DETERMINISTIC: $a vs $b"; exit 1; }
+
   smoke:
     name: smoke (post-deploy)
     # Only meaningful once the commit is on the default branch — that is what the

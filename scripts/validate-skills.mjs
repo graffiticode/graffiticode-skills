@@ -29,7 +29,10 @@ const warn = (skill, msg) => warnings.push(`${skill}: ${msg}`);
 
 const dirs = readdirSync(ROOT)
   .filter((d) => !d.startsWith(".") && statSync(join(ROOT, d)).isDirectory())
-  .filter((d) => d !== "scripts" && d !== "node_modules")
+  // `dist` is build output, not a skill. It is gitignored, so the MCP server
+  // (which reads the repo over the GitHub API) never sees it — but this script
+  // reads the filesystem, where a local `npm run package` leaves it behind.
+  .filter((d) => d !== "scripts" && d !== "node_modules" && d !== "dist")
   .sort();
 
 const skills = dirs.map((id) => {

@@ -66,6 +66,38 @@ minutes, since the server's cache TTL means a fresh push is not instantly live.
 
 Both run in CI on every push and pull request (`.github/workflows/skills.yml`).
 
+## Packaging the plugin for OpenAI
+
+These skills also ship to OpenAI's Plugin Directory as half of the Graffiticode
+plugin — the other half is the MCP server, registered separately. `npm run
+package` builds that upload:
+
+```bash
+npm run package -- --dry-run   # build and hash, write nothing
+npm run package                # writes dist/graffiticode-plugin-<version>.zip
+```
+
+The artifact is a **pure function of one commit**: the build resolves `--ref`
+(default `origin/main`) to a SHA, gates on that ref's own `validate`, and reads
+every shipped byte out of git — never off your disk. So an uncommitted edit
+cannot ship, and rebuilding a ref reproduces its artifact exactly. The output is
+byte-identical across machines, timezones and locales, which is what makes the
+printed SHA-256 worth recording next to the upload: it answers "is the ZIP the
+portal holds the ZIP this repo produces?"
+
+The shipped tree is **not** this repo's tree. Skills live at the top level here
+because the MCP server discovers them there at request time; the plugin format
+wants `skills/<id>/SKILL.md`, so the build restages them. A held draft
+(`SKILL.md.draft`) is excluded by the same rule that keeps the server from
+serving it, and the build prints what it left out on every run.
+
+`plugin.json` is generated from **`plugin.meta.json`** — the listing copy, and
+the only place a subtitle, description or starter prompt should be edited (the
+version lives in `package.json`). Its human-readable counterpart, carrying the
+rationale for every field, is
+`graffiticode-mcp-server/docs/openai-listing-copy.md`; **change both in the same
+sitting.**
+
 ## Installing a skill manually
 
 Skills are loaded by Claude Code from a skills directory. To install one for
