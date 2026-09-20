@@ -49,6 +49,38 @@ The Graffiticode MCP connector must be connected (`mcp.graffiticode.org/mcp`).
 If `list_languages` is unavailable, tell the user to connect the Graffiticode
 MCP before proceeding. Do not attempt to simulate or approximate the rendering.
 
+## Fast-path patterns
+
+**The more specific the user's request, the faster you can hand it off to Graffiticode.** Two patterns minimize your thinking time:
+
+### Pass-through: user provides content
+
+When the user supplies the actual data, pass it directly — no invention needed:
+
+- "Create a spreadsheet: Rent 1500, Food 400, Utilities 200, Total with SUM" → `create_item` immediately with the content verbatim
+- "Make a quiz: Q1 What is 2+2? A) 3 B) 4 C) 5 D) 6, correct B" → `create_item` immediately
+- "Chart these values: Jan 100, Feb 150, Mar 200" → `create_item` immediately
+
+Your job is routing and formatting, not content generation. This path is fastest.
+
+### Clarify: user is vague about content
+
+When the user describes a *kind* of artifact but not its content, **ask for specifics rather than inventing**:
+
+- "Create an invoice" → Ask: "What line items and amounts should it include?"
+- "Make a quiz on fractions" → Ask: "How many questions? What specific fraction operations?"
+- "Build a budget spreadsheet" → Ask: "What categories and amounts?"
+
+Inventing content (line items, quiz questions, budget categories) takes time and may not match what the user wants. Clarifying is faster and more accurate.
+
+### When to invent
+
+Invent content only when the user explicitly delegates creativity:
+
+- "Surprise me with a quiz on photosynthesis" → invent
+- "Make up some sample data for a demo" → invent
+- "Create a fun quiz for 5th graders" → invent (but still ask about topic/length if unspecified)
+
 ## Workflow
 
 Every rendering request follows the same four steps. Do not skip steps 1–2.

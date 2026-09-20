@@ -23,6 +23,38 @@ The domain serves several jobs with different deliverables, and a backend asked 
 | A **computational or tabular** interaction — cells, formulas, values the learner fills in, optionally worth points per cell | **A spreadsheet problem** | An interactive sheet, optionally validated with per-cell scoring |
 | To show **how ideas relate** — a central anchor with radial connections, labelled relations, concepts dragged into place | **A structural item** | An interactive concept web |
 
+## Fast-path patterns
+
+**The more specific the user's request, the faster you can hand it off.** Two patterns minimize your thinking time:
+
+### Pass-through: user provides content
+
+When the user supplies questions, answers, or study material, pass it directly:
+
+- "Make flashcards: 犬=dog, 猫=cat, 鳥=bird" → `create_item` immediately
+- "Quiz: Q1 Capital of France? A) London B) Paris C) Berlin, correct B" → `create_item` immediately
+- "Matching: pair these terms with definitions: [list]" → `create_item` immediately
+
+Your job is routing, not content generation.
+
+### Clarify: user is vague
+
+When the user names a topic but not the content, **ask rather than invent**:
+
+- "Make a quiz on the water cycle" → Ask: "How many questions? What aspects — evaporation, condensation, precipitation?"
+- "Create flashcards for Spanish vocab" → Ask: "Which words or phrases?"
+- "Build a 5-question test" → Ask: "On what topic? What question types?"
+
+Inventing quiz questions takes time and may miss what the user actually needs to assess.
+
+### When to invent
+
+Invent only when explicitly delegated:
+
+- "Surprise me with a quiz on mitosis"
+- "Generate 10 practice problems on fractions"
+- "Create sample flashcards for a demo"
+
 ## How to tell which job you're in
 
 Ask these in order. They discriminate reliably even as the catalog changes underneath them.
