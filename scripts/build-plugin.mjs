@@ -6,10 +6,10 @@
 // portal so far was assembled by hand and not kept. This script makes the
 // artifact a pure function of one commit, so its SHA-256 answers the question.
 //
-// The shipped tree is NOT this repo's tree. Skills live at the top level here,
-// because the MCP server discovers them there at request time over the GitHub
-// API; the plugin format wants them under `skills/`. That restructuring happens
-// at build time, which is why the server's live discovery path is untouched.
+// The shipped tree matches this repo's tree: skills at the top level. The MCP
+// server discovers them there at request time over the GitHub API, and OpenAI's
+// portal expects the same structure (each skill as a root-level directory
+// containing SKILL.md).
 //
 // Run: npm run package [-- --flags]
 
@@ -80,6 +80,7 @@ function parseArgs(argv) {
     keepStaging: false,
     dev: false,
     noApp: false,
+    skillsOnly: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -96,6 +97,7 @@ function parseArgs(argv) {
       case "--schema": opts.schema = next(); break;
       case "--dev": opts.dev = true; break;
       case "--no-app": opts.noApp = true; break;
+      case "--skills-only": opts.skillsOnly = true; break;
       case "--dry-run": opts.dryRun = true; break;
       case "--keep-staging": opts.keepStaging = true; break;
       case "-h":
@@ -121,6 +123,7 @@ function help() {
   --schema <s>     portable | native                (default: portable)
   --dev            build as <name>-v2, a sibling identity for workspace testing
   --no-app         omit .app.json, so the client talks to mcp.json directly
+  --skills-only    output only skill directories (for OpenAI portal skills upload)
   --dry-run        build and hash, write nothing
   --keep-staging   leave the temp dir and print its path
   -h, --help
@@ -538,12 +541,14 @@ function main() {
     ? Buffer.from(JSON.stringify({ apps: plugin.apps }, null, 2) + "\n", "utf8")
     : null;
 
-  const entries = [
-    { path: "plugin.json", bytes: pluginJson },
-    ...(mcpJson ? [{ path: "mcp.json", bytes: mcpJson }] : []),
-    ...(appJson ? [{ path: ".app.json", bytes: appJson }] : []),
-    ...skills.map((s) => ({ path: `skills/${s.id}/SKILL.md`, bytes: s.bytes })),
-  ];
+  const entries = opts.skillsOnly
+    ? skills.map((s) => ({ path: `${s.id}/SKILL.md`, bytes: s.bytes }))
+    : [
+        { path: "plugin.json", bytes: pluginJson },
+        ...(mcpJson ? [{ path: "mcp.json", bytes: mcpJson }] : []),
+        ...(appJson ? [{ path: ".app.json", bytes: appJson }] : []),
+        ...skills.map((s) => ({ path: `${s.id}/SKILL.md`, bytes: s.bytes })),
+      ];
   const totalBytes = entries.reduce((n, e) => n + e.bytes.length, 0);
 
   validatePlugin(plugin, skills, entries, totalBytes);
@@ -583,7 +588,7 @@ function main() {
 
   // A non-default ref gets the short SHA in its filename, so an experimental
   // build cannot silently overwrite the release artifact at the same path.
-  const suffix = `${opts.dev ? "-v2" : ""}${opts.noApp ? "-noapp" : ""}${opts.ref === "origin/main" ? "" : `+${sha.slice(0, 7)}`}`;
+  const suffix = `${opts.dev ? "-v2" : ""}${opts.noApp ? "-noapp" : ""}${opts.skillsOnly ? "-skills" : ""}${opts.ref === "origin/main" ? "" : `+${sha.slice(0, 7)}`}`;
   const out = opts.out ?? join(ROOT, "dist", `graffiticode-plugin-${version}${suffix}.zip`);
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, zip);
