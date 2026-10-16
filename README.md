@@ -1,3 +1,5 @@
+> **This repository has moved.** The skills now live in [graffiticode/graffiticode-app](https://github.com/graffiticode/graffiticode-app) under [`packages/skills`](https://github.com/graffiticode/graffiticode-app/tree/main/packages/skills), with full history, and the MCP server and REST API serve them from there. Please open issues and pull requests there. This repository is archived.
+
 # graffiticode-skills
 
 Source-of-truth repository for Graffiticode agent **skills** — self-contained
